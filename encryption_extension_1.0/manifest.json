@@ -1,0 +1,31 @@
+{
+    "manifest_version": 2,
+    "name": "Cookie Encryptor",
+    "version": "1.0",
+    "description": "Encrypt and decrypt cookies.",
+    "browser_action": {
+      "default_popup": "popup.html",
+      "default_icon": {
+        "16": "download.jpeg",
+        "48": "download.jpeg",
+        "128": "download.jpeg"
+      }
+    },
+    "permissions": [
+      "activeTab",
+      "storage",
+      "webNavigation"
+    ],
+    "icons": {
+      "16": "./download.jpeg",
+      "48": "download.jpeg",
+      "128": "download.jpeg"
+    },
+    "content_scripts": [
+      {
+        "matches": ["<all_urls>"],
+        "js": ["content.js"]
+      }
+    ]
+  }
+  
