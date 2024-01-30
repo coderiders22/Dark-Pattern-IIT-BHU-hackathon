@@ -86,8 +86,8 @@ Made using JavaScript, this encryption is compatible with all browsers. The fold
 
 
 
-VIII. Flowchart of working
-![Screenshot](screenshot.png)
+
+![VIII. Flowchart of working](Screenshot.png)
  
 
 
