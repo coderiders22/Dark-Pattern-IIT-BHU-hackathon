@@ -1,3 +1,5 @@
+You may check the documentation to know more about the problem, approaches, and see ui screenshots.
+
 Introduction: TrustForge
 
 Our project: TrustForge, implements the solution to the problem statement as a set of three branches:
@@ -48,6 +50,7 @@ Made using JavaScript, this encryption is compatible with all browsers. The fold
 ![VIII. Flowchart of working](Screenshot.png)
 
 In conclusion, we have been able to implement a solution that is user friendly, scalable, adaptable, flexible, as well as accurate and secure. 
+
  
 
 
