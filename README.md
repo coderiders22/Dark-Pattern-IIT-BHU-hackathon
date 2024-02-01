@@ -1,8 +1,9 @@
 > You may check the documentation to know more about the problem, approaches, and see ui screenshots.
 
-# Introduction: TrustForge 
-
 > [!ABOUT THE PROJECT]
+
+> # Introduction: TrustForge 
+
 > TrustForge, implements the solution to the problem statement as a set of three branches:
 - Using a **Om Browser** which in itself holds the capability to detect dark patterns.
 * In addition to this, we also provide an extension, just in case the user still wants to use theri current browser.
