@@ -5,7 +5,7 @@
 > [!NOTE]
 > Our project
 > *TrustForge, implements the solution to the problem statement as a set of three branches:*
-- Using a **Om Browser** which in itself holds the capability to detect dark patterns.
+- ***Using a **Om Browser** which in itself holds the capability to detect dark patterns.***
 * In addition to this, we also provide an extension, just in case the user still wants to use theri current browser.
 + Also, a key feature of our solution is that the browser supports user privacy by encrypting user data stored as c cookies so that third party apps cannot use this data to target specific dark patterns to the user.
 - Each of this gives TrustForge an edge over any other solution you might find in the market, as a browser ensures user friendliness and a holistic solution, an extension ensures flexibility in the solution, and the user privacy feature ensures user trust and data protection.
