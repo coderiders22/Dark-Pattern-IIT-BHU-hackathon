@@ -1,11 +1,11 @@
 > You may check the documentation to know more about the problem, approaches, and see ui screenshots.
 
- ## Introduction: TrustForge 
+ ### Introduction: TrustForge 
 
 > [!NOTE]
 > Our project
 > *TrustForge, implements the solution to the problem statement as a set of three branches:*
-- Using a **Om Browser**`#0969DA` which in itself holds the capability to detect dark patterns.
+- Using a **Om Browser** which in itself holds the capability to detect dark patterns.
 * In addition to this, we also provide an extension, just in case the user still wants to use theri current browser.
 + Also, a key feature of our solution is that the browser supports user privacy by encrypting user data stored as c cookies so that third party apps cannot use this data to target specific dark patterns to the user.
 - Each of this gives TrustForge an edge over any other solution you might find in the market, as a browser ensures user friendliness and a holistic solution, an extension ensures flexibility in the solution, and the user privacy feature ensures user trust and data protection.
@@ -23,16 +23,16 @@
 > [!IMPORTANT]
 > **Detailed explanation of each factor of the proposed solution**
 
-- Browser
-A user-friendly browser, called Om, that has inbuilt dark patterns identification properties. It does so by using an inbuilt extension. The browser will detect these dark patterns and give a warning to the user about the same. 
-* Built in extension
-Om will have an inbuilt extension that detects and eliminates dark patterns on e-commerce websites. It has been integrated with ML models to detect these patterns. 
-+ ML models trained to detect dark patterns 
-BERT and NLP models have been integrated with the extension for efficient dark pattern recognition. The models have been trained on relevant data set, and their accuracy, precision, and F1 scores are taken into account before making the decision to use the same. 
-- Safeguarding user privacy 
-Encryption techniques have been used to safeguard user data and maintain user privacy. User data usually gets stored as cookies on websites, and third party websites use these cookies to their use, by specific targeting users based on their prior interests, and browser history. TrustForge eliminates this entire cycle by encrypting the user data stores as cookies so that any third party cannot manipulate this data to their use. 
-* Extension as an alternative solution 
-We also provide an extension as an alternate solution. Yet the browser is a better solution in terms of scalability and adaptability, and also in terms of user experience. 
+- **Browser**
+*A user-friendly browser, called Om, that has inbuilt dark patterns identification properties. It does so by using an inbuilt extension. The browser will detect these dark patterns and give a warning to the user about the same.* 
+* **Built in extension**
+*Om will have an inbuilt extension that detects and eliminates dark patterns on e-commerce websites. It has been integrated with ML models to detect these patterns.*
++ **ML models trained to detect dark patterns** 
+*BERT and NLP models have been integrated with the extension for efficient dark pattern recognition. The models have been trained on relevant data set, and their accuracy, precision, and F1 scores are taken into account before making the decision to use the same.* 
+- **Safeguarding user privacy** 
+*Encryption techniques have been used to safeguard user data and maintain user privacy. User data usually gets stored as cookies on websites, and third party websites use these cookies to their use, by specific targeting users based on their prior interests, and browser history. TrustForge eliminates this entire cycle by encrypting the user data stores as cookies so that any third party cannot manipulate this data to their use.* 
+* **Extension as an alternative solution** 
+*We also provide an extension as an alternate solution. Yet the browser is a better solution in terms of scalability and adaptability, and also in terms of user experience.* 
 
 > [!TIP]
 > *Now, a very intuitive question might be that why would you opt for a browser when you could use an extension in your current browser?*
