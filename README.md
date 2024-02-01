@@ -36,7 +36,7 @@ Encryption techniques have been used to safeguard user data and maintain user pr
 We also provide an extension as an alternate solution. Yet the browser is a better solution in terms of scalability and adaptability, and also in terms of user experience. 
 
 > [!QUESTION]
-> Now, a very intuitive question might be that why would you opt for a browser when you could use an extension in your current browser? 
+> **Now, a very intuitive question might be that why would you opt for a browser when you could use an extension in your current browser?** 
 
 > [!SOLUTION]
 > The answer is that by making a browser, we have solved a huge problem that one encounters while using extensions: compatibility. Not all browsers support the same kind of extensions, and it often ends up becoming a hassle for the end user to put to use these extensions with a suitable browser. 
