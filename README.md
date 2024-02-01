@@ -12,13 +12,13 @@
 
 ## Detailed Project Description 
 
-> TrustForge uses a browser that has, by default, capabilities to detect dark patterns and secure user data. 
-> The former is achieved by using an inbuilt extension that has been integrated with ML models (BERT) trained to detect such patterns.
-> User privacy is often ignored when talking about dark patterns, but in doing so we forget as to why we are tackling dark patterns in the first place. The main goal is user safety, and trustworthy and transparent e commerce transactions.
-> So to tackle this, we have another branch of this solution, which is the way the browser ensures user privacy by encrypting user data (stored as cookies) so that any third party cannot access this user data and manipulate it to their use.  
-> It is noteworthy that in addition to this browser, we also provide an extension as an alternative solution. The browser holds advantage over the extension in terms of scalability and adaptability. The extension might not be compatible with all browsers, and to solve this, we may have to take away some key features of the solution. 
-> That is why instead of coming up with an extension, we have proposed a browser as a solution. 
-> Also, this ensures user friendly UI as well as easy accessibility to the solution. User experience is held at high priority, and the browser ensures trustworthy and convenient means to detect dark patterns.
+- TrustForge uses a browser that has, by default, capabilities to detect dark patterns and secure user data. 
+* The former is achieved by using an inbuilt extension that has been integrated with ML models (BERT) trained to detect such patterns.
++ User privacy is often ignored when talking about dark patterns, but in doing so we forget as to why we are tackling dark patterns in the first place. The main goal is user safety, and trustworthy and transparent e commerce transactions.
+- So to tackle this, we have another branch of this solution, which is the way the browser ensures user privacy by encrypting user data (stored as cookies) so that any third party cannot access this user data and manipulate it to their use.  
+* It is noteworthy that in addition to this browser, we also provide an extension as an alternative solution. The browser holds advantage over the extension in terms of scalability and adaptability. The extension might not be compatible with all browsers, and to solve this, we may have to take away some key features of the solution. 
++ That is why instead of coming up with an extension, we have proposed a browser as a solution. 
+- Also, this ensures user friendly UI as well as easy accessibility to the solution. User experience is held at high priority, and the browser ensures trustworthy and convenient means to detect dark patterns.
 
 > [!IMPORTANT]
 > **Detailed explanation of each factor of the proposed solution**
