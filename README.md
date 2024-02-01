@@ -35,10 +35,10 @@
 *We also provide an extension as an alternate solution. Yet the browser is a better solution in terms of scalability and adaptability, and also in terms of user experience.* 
 
 > [!TIP]
-> *Now, a very intuitive question might be that why would you opt for a browser when you could use an extension in your current browser?*
+> **Now, a very intuitive question might be that why would you opt for a browser when you could use an extension in your current browser?**
 
-> The answer is that by making a browser, we have solved a huge problem that one encounters while using extensions: compatibility. Not all browsers support the same kind of extensions, and it often ends up becoming a hassle for the end user to put to use these extensions with a suitable browser. 
-> By giving the user a new browser which by default has capabilities to detect dark patterns, we have not only put user experience to highest priority, but also ensured that we are providing the users with a secure and efficient solution to their problem. 
+> ***The answer is that by making a browser, we have solved a huge problem that one encounters while using extensions: compatibility. Not all browsers support the same kind of extensions, and it often ends up becoming a hassle for the end user to put to use these extensions with a suitable browser.*** 
+> ***By giving the user a new browser which by default has capabilities to detect dark patterns, we have not only put user experience to highest priority, but also ensured that we are providing the users with a secure and efficient solution to their problem.*** 
 
 > [!NOTE]
 > **TECHSTACK**
@@ -54,7 +54,7 @@
 
  ![VIII. Flowchart of working](Screenshot.png)
 
-> In conclusion, we have been able to implement a solution that is user friendly, scalable, adaptable, flexible, as well as accurate and secure.
+> ***In conclusion, we have been able to implement a solution that is user friendly, scalable, adaptable, flexible, as well as accurate and secure.***
 
 
 ### TO VIEW & DOWNLOAD THE OM BROWSER
