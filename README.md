@@ -2,7 +2,7 @@
 
 > [!ABOUT THE PROJECT]
 
-> # Introduction: TrustForge 
+
 
 > TrustForge, implements the solution to the problem statement as a set of three branches:
 - Using a **Om Browser** which in itself holds the capability to detect dark patterns.
