@@ -35,15 +35,14 @@ Encryption techniques have been used to safeguard user data and maintain user pr
 * Extension as an alternative solution 
 We also provide an extension as an alternate solution. Yet the browser is a better solution in terms of scalability and adaptability, and also in terms of user experience. 
 
-> [!QUESTION]
-> **Now, a very intuitive question might be that why would you opt for a browser when you could use an extension in your current browser?** 
+> [!TIP]
+> *Now, a very intuitive question might be that why would you opt for a browser when you could use an extension in your current browser?*
 
-> [!SOLUTION]
 > The answer is that by making a browser, we have solved a huge problem that one encounters while using extensions: compatibility. Not all browsers support the same kind of extensions, and it often ends up becoming a hassle for the end user to put to use these extensions with a suitable browser. 
 > By giving the user a new browser which by default has capabilities to detect dark patterns, we have not only put user experience to highest priority, but also ensured that we are providing the users with a secure and efficient solution to their problem. 
 
-> [!TECHSTACK]
-
+> [!NOTE]
+> TECHSTACK
 - Browser
 The browser has been made on chromium framework. The built in extension has been integrated with the browser by forking chromium and joining the extension. 
 * Extension
@@ -54,10 +53,10 @@ We used BERT model,  trained it on a relevant dark patterns data set, and deploy
 Made using JavaScript, this encryption is compatible with all browsers. The folder has to be uploaded and tapped into to enable it. 
 
 
-> [!VIII. Flowchart of working](Screenshot.png)
+ ![VIII. Flowchart of working](Screenshot.png)
 
 > In conclusion, we have been able to implement a solution that is user friendly, scalable, adaptable, flexible, as well as accurate and secure.
 
 
-> [!TO VIEW THE OM BROWSER]
->[Click Here](Om.exe)
+### TO VIEW THE OM BROWSER
+> [Click Here](Om.exe)
