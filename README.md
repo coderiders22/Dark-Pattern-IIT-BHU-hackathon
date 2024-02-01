@@ -57,5 +57,5 @@
 > In conclusion, we have been able to implement a solution that is user friendly, scalable, adaptable, flexible, as well as accurate and secure.
 
 
-### TO VIEW THE OM BROWSER
+### TO VIEW & DOWNLOAD THE OM BROWSER
 > [Click Here](Om.exe)
