@@ -23,15 +23,15 @@
 > [!IMPORTANT]
 > **Detailed explanation of each factor of the proposed solution**
 
-- **Browser**
+- **Browser**-: 
 *A user-friendly browser, called Om, that has inbuilt dark patterns identification properties. It does so by using an inbuilt extension. The browser will detect these dark patterns and give a warning to the user about the same.* 
-* **Built in extension**
+* **Built in extension**-: 
 *Om will have an inbuilt extension that detects and eliminates dark patterns on e-commerce websites. It has been integrated with ML models to detect these patterns.*
-+ **ML models trained to detect dark patterns** 
++ **ML models trained to detect dark patterns**-: 
 *BERT and NLP models have been integrated with the extension for efficient dark pattern recognition. The models have been trained on relevant data set, and their accuracy, precision, and F1 scores are taken into account before making the decision to use the same.* 
-- **Safeguarding user privacy** 
+- **Safeguarding user privacy**-: 
 *Encryption techniques have been used to safeguard user data and maintain user privacy. User data usually gets stored as cookies on websites, and third party websites use these cookies to their use, by specific targeting users based on their prior interests, and browser history. TrustForge eliminates this entire cycle by encrypting the user data stores as cookies so that any third party cannot manipulate this data to their use.* 
-* **Extension as an alternative solution** 
+* **Extension as an alternative solution**-:
 *We also provide an extension as an alternate solution. Yet the browser is a better solution in terms of scalability and adaptability, and also in terms of user experience.* 
 
 > [!TIP]
@@ -41,15 +41,15 @@
 > By giving the user a new browser which by default has capabilities to detect dark patterns, we have not only put user experience to highest priority, but also ensured that we are providing the users with a secure and efficient solution to their problem. 
 
 > [!NOTE]
-> TECHSTACK
-- Browser
-The browser has been made on chromium framework. The built in extension has been integrated with the browser by forking chromium and joining the extension. 
-* Extension
-The extension has been made in JavaScript. The integration of the model within the extension has been done using Flask.
-+ ML model
-We used BERT model,  trained it on a relevant dark patterns data set, and deployed it to integrate in the extension. 
-- Encryption Techniques
-Made using JavaScript, this encryption is compatible with all browsers. The folder has to be uploaded and tapped into to enable it. 
+> **TECHSTACK**
+- **Browser**-: 
+*The browser has been made on chromium framework. The built in extension has been integrated with the browser by forking chromium and joining the extension.* 
+* **Extension**-:
+*The extension has been made in JavaScript. The integration of the model within the extension has been done using Flask.*
++ **ML model**-:
+*We used BERT model,  trained it on a relevant dark patterns data set, and deployed it to integrate in the extension.* 
+- **Encryption Techniques**-:
+*Made using JavaScript, this encryption is compatible with all browsers. The folder has to be uploaded and tapped into to enable it.* 
 
 
  ![VIII. Flowchart of working](Screenshot.png)
