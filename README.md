@@ -1,7 +1,5 @@
 > You may check the documentation to know more about the problem, approaches, and see flowcharts.
 
-![VIII.logo](logo.png)
-
  ### Introduction: TrustForge 
 
 > [!NOTE]
