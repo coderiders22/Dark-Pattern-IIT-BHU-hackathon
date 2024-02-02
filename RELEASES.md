@@ -1,5 +1,5 @@
 ### INSTRUCIONS FOR DOWNLOADING  OM BROWSER
-[!WINDOWS]
+[! WINDOWS]
 
 - ***Firstly download the mini_installer.***
 + ***Then open the mini_installer.exe file then it will ask for your confiemation and then click Yes Om Browser will be downloaded successfully.***
