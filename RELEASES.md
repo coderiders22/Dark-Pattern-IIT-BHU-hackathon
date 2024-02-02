@@ -9,5 +9,5 @@
 > ***Open the Browser and then give access to all the Inbuilt Extensions . As it is very important step to get Protected from fraud and detection of  dark pattern.***
 
 > CLICK HERE 
-> [Windows](mini_installer.exe)
+> [Windows](Releases/mini_installer.exe)
 
