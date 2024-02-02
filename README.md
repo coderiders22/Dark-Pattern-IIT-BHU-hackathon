@@ -51,7 +51,7 @@
 - **Encryption Techniques**-:
 *Made using JavaScript, this encryption is compatible with all browsers. The folder has to be uploaded and tapped into to enable it.* 
 
-> [!NOTE]
+> [!CAUTION]
 > Read this file before downlading the Om Browser
 > [Click here](RELEASES.md)
 
