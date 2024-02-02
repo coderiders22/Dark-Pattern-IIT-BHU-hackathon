@@ -51,11 +51,12 @@
 - **Encryption Techniques**-:
 *Made using JavaScript, this encryption is compatible with all browsers. The folder has to be uploaded and tapped into to enable it.* 
 
+> [!NOTE]
+> Read this file before downlading the Om Browser
+> [](RELEASES.md)
 
  ![VIII. Flowchart of working](Screenshot.png)
 
 > ***In conclusion, we have been able to implement a solution that is user friendly, scalable, adaptable, flexible, as well as accurate and secure.***
 
 
-### TO VIEW & DOWNLOAD THE OM BROWSER
-> [Click Here](RELEASES.md)
