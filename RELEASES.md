@@ -11,5 +11,3 @@
 > CLICK HERE 
 > [Windows](mini_installer.exe)
 
-[MAC]
-> ***COMING SOON***
