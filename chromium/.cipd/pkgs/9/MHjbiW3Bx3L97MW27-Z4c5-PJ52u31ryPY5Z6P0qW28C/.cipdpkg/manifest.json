@@ -1,0 +1,18 @@
+{
+  "format_version": "1.1",
+  "package_name": "infra/build/siso/windows-amd64",
+  "version_file": ".versions/siso.exe.cipd_version",
+  "actual_install_mode": "copy",
+  "files": [
+    {
+      "name": "siso.exe",
+      "size": 29257216,
+      "hash": "-3HiIuH4JvQYNTeIqhoos5kbtosuDwND7GPo20PLEhYC"
+    },
+    {
+      "name": ".versions/siso.exe.cipd_version",
+      "size": 119,
+      "hash": "PMKxI8v1kFqZi5tSj6wb9wTSv5IlzVp-IAAtzwwNdzUC"
+    }
+  ]
+}

@@ -1,0 +1,17 @@
+Name: fontconfig
+URL: http://www.freedesktop.org/wiki/Software/fontconfig/
+Version: 2fb3419a92156569bc1ec707401258c922cd0d99
+CPEPrefix: cpe:/a:fontconfig_project:fontconfig:2.14.2
+License: MIT
+License File: src/COPYING
+Security Critical: yes
+Shipped: yes
+
+Description:
+Fontconfig is a library for configuring and customizing font access.
+
+Modifications:
+- None
+
+To import a new snapshot of fontconfig:
+Run update.sh

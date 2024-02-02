@@ -1,0 +1,93 @@
+{
+  "format_version": "1.1",
+  "package_name": "infra/rbe/client/windows-amd64",
+  "install_mode": "copy",
+  "actual_install_mode": "copy",
+  "files": [
+    {
+      "name": "CHANGELOG.md",
+      "size": 103405,
+      "hash": "29XalteVMu4mhWyOC4ZdMIY9BhCa0Fd-pbt-cxq7G20C"
+    },
+    {
+      "name": "LICENSE",
+      "size": 11358,
+      "hash": "z8d0m5b2O9McPEK1xHG_dWgUBT6EfBDz6wA0F7xSPTAC"
+    },
+    {
+      "name": "NOTICE",
+      "size": 8005,
+      "hash": "atxR1hBLhwhrs29cTIZm5hSxLg_QmT3rC_fKzSFVApkC"
+    },
+    {
+      "name": "bootstrap.exe",
+      "size": 28577526,
+      "hash": "5Wc0I6Y5yLZoQ_rSB8jqLEvflBmwFZvpdlyKXEgePHMC"
+    },
+    {
+      "name": "credshelper.exe",
+      "size": 12934039,
+      "hash": "6hX7Z4TRL2UqLOVSEG24KPVYPtH13AWbG9JgajyvOB8C"
+    },
+    {
+      "name": "dumpstats.exe",
+      "size": 25014707,
+      "hash": "e3HjkB2nvzznKFOrOJBA5YIvnHeJO9IRg2RZE1ck0OkC"
+    },
+    {
+      "name": "logdump.exe",
+      "size": 24617417,
+      "hash": "OTktE3V8QmYHArr19pI15_a3f_YCkmgX0rSeNp1E8jMC"
+    },
+    {
+      "name": "metricsuploader.exe",
+      "size": 38246407,
+      "hash": "OzbyYddT0fRu_OSBbcdMg58_78L05nSYzyMGkocQzpIC"
+    },
+    {
+      "name": "reclientreport.exe",
+      "size": 25811197,
+      "hash": "IpDqxqKKhnfhLEdymVbkqLPEpzSow6cf0zsO8QHp8NsC"
+    },
+    {
+      "name": "reproxy.exe",
+      "size": 168671347,
+      "hash": "fr4DEwE2B35keuI-71ZXnENR0Hn-QtdeIGT2xxTYmRgC"
+    },
+    {
+      "name": "reproxystatus.exe",
+      "size": 23112880,
+      "hash": "w_21OxhgGgYbMwDTeptCOh7OtjDKp8AZo92-rtp9NVkC"
+    },
+    {
+      "name": "rewrapper.exe",
+      "size": 23936834,
+      "hash": "h8e0_akQyIv5NWsUZKmXn_n5cCOV8q4oE5LZY40iTLAC"
+    },
+    {
+      "name": "rpl2cloudtrace.exe",
+      "size": 29945216,
+      "hash": "2Y2wkPhMhGUKNxVtjNG-yINb9KNkxEEJ8y7HJyDuSxUC"
+    },
+    {
+      "name": "rpl2trace.exe",
+      "size": 24654316,
+      "hash": "cuTZMHYCBJP7_NqZGP9KtxwRn1C6d6hCJMRQsrxNb0sC"
+    },
+    {
+      "name": "scandeps_server.exe",
+      "size": 8643584,
+      "hash": "n_3hNKXYGfAgH0OPpWHPfF4W1Px2UJfS3qIBBB4OFhMC"
+    },
+    {
+      "name": "scandeps_server.pdb",
+      "size": 110325760,
+      "hash": "2MfyAKYOMuhA-3PSB1XjzGdJwhsPPRldMSNITCfCJvgC"
+    },
+    {
+      "name": "scandeps_server.sym",
+      "size": 14404077,
+      "hash": "61llU2v19UmgbWPjSOyDQK5Fon5iMnlwCksRy4OikQwC"
+    }
+  ]
+}

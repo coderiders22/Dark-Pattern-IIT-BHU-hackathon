@@ -1,0 +1,844 @@
+// Copyright 2020 The Chromium Authors
+// Use of this source code is governed by a BSD-style license that can be
+// found in the LICENSE file.
+
+#include "chrome/browser/policy/messaging_layer/upload/record_handler_impl.h"
+
+#include <cstddef>
+#include <cstdint>
+#include <memory>
+#include <optional>
+#include <string>
+#include <tuple>
+#include <utility>
+#include <vector>
+
+#include "base/base64.h"
+#include "base/functional/bind.h"
+#include "base/functional/callback.h"
+#include "base/memory/scoped_refptr.h"
+#include "base/metrics/histogram_functions.h"
+#include "base/sequence_checker.h"
+#include "base/strings/strcat.h"
+#include "base/strings/string_number_conversions.h"
+#include "base/task/bind_post_task.h"
+#include "base/task/sequenced_task_runner.h"
+#include "base/task/thread_pool.h"
+#include "base/thread_annotations.h"
+#include "base/token.h"
+#include "base/types/expected.h"
+#include "base/types/expected_macros.h"
+#include "base/uuid.h"
+#include "base/values.h"
+#include "chrome/browser/enterprise/browser_management/management_service_factory.h"
+#include "chrome/browser/policy/messaging_layer/proto/synced/log_upload_event.pb.h"
+#include "chrome/browser/policy/messaging_layer/upload/event_upload_size_controller.h"
+#include "chrome/browser/policy/messaging_layer/upload/file_upload_job.h"
+#include "chrome/browser/policy/messaging_layer/upload/record_upload_request_builder.h"
+#include "chrome/browser/policy/messaging_layer/upload/server_uploader.h"
+#include "chrome/browser/policy/messaging_layer/util/reporting_server_connector.h"
+#include "components/reporting/proto/synced/configuration_file.pb.h"
+#include "components/reporting/proto/synced/record.pb.h"
+#include "components/reporting/proto/synced/record_constants.pb.h"
+#include "components/reporting/proto/synced/upload_tracker.pb.h"
+#include "components/reporting/resources/resource_manager.h"
+#include "components/reporting/util/encrypted_reporting_json_keys.h"
+#include "components/reporting/util/status.h"
+#include "components/reporting/util/status_macros.h"
+#include "components/reporting/util/statusor.h"
+#include "components/reporting/util/task_runner_context.h"
+#include "content/public/browser/browser_task_traits.h"
+#include "content/public/browser/browser_thread.h"
+
+namespace reporting {
+namespace {
+
+// Priority could come back as an int or as a std::string, this function handles
+// both situations.
+static std::optional<Priority> GetPriorityProtoFromSequenceInformationValue(
+    const base::Value::Dict& sequence_information) {
+  const std::optional<int> int_priority_result =
+      sequence_information.FindInt(json_keys::kPriority);
+  if (int_priority_result.has_value()) {
+    return Priority(int_priority_result.value());
+  }
+
+  const std::string* str_priority_result =
+      sequence_information.FindString(json_keys::kPriority);
+  if (!str_priority_result) {
+    LOG(ERROR) << "Field priority is missing from SequenceInformation: "
+               << sequence_information;
+    return std::nullopt;
+  }
+
+  Priority priority;
+  if (!Priority_Parse(*str_priority_result, &priority)) {
+    LOG(ERROR) << "Unable to parse field priority in SequenceInformation: "
+               << sequence_information;
+    return std::nullopt;
+  }
+  return priority;
+}
+
+#if BUILDFLAG(IS_CHROMEOS)
+// Returns true if `generation_guid` is required and missing.
+// Returns false otherwise.
+static bool IsMissingGenerationGuid(const std::string* generation_guid) {
+  if (!SequenceInformationDictionaryBuilder::GenerationGuidIsRequired()) {
+    return false;
+  }
+  return !generation_guid || generation_guid->empty();
+}
+#endif  // BUILDFLAG(IS_CHROMEOS)
+
+// Returns true if any required sequence info is missing. Returns
+// false otherwise.
+static bool IsMissingSequenceInformation(
+    const std::string* sequencing_id,
+    const std::string* generation_id,
+    const std::optional<Priority> priority_result,
+    const std::string* generation_guid) {
+  return !sequencing_id || !generation_id || generation_id->empty() ||
+#if BUILDFLAG(IS_CHROMEOS)
+         IsMissingGenerationGuid(generation_guid) ||
+#endif  // BUILDFLAG(IS_CHROMEOS)
+         !priority_result.has_value() ||
+         !Priority_IsValid(priority_result.value());
+}
+
+#if BUILDFLAG(IS_CHROMEOS)
+// Returns true if `generation_guid` can be parsed as a GUID or if
+// `generation_guid` does not need to be parsed based on the type of device.
+// Returns false otherwise.
+static bool GenerationGuidIsValid(const std::string& generation_guid) {
+  DCHECK_CURRENTLY_ON(content::BrowserThread::UI);
+  if (generation_guid.empty() &&
+      !SequenceInformationDictionaryBuilder::GenerationGuidIsRequired()) {
+    // This is a legacy ChromeOS managed device and is not required to have
+    // a `generation_guid`.
+    return true;
+  }
+  // If the generation guid has some value, try to parse it.
+  return base::Uuid::ParseCaseInsensitive(generation_guid).is_valid();
+}
+#endif  // BUILDFLAG(IS_CHROMEOS)
+
+// Processes LOG_UPLOAD event.
+void ProcessFileUpload(
+    Priority priority,
+    Record record_copy,
+    const ScopedReservation& scoped_reservation,
+    base::RepeatingCallback<std::unique_ptr<FileUploadJob::Delegate>()>
+        delegate_factory,
+    base::OnceCallback<void(Status)> done_cb) {
+  // Here we need to determine which events we got. It would be better to
+  // use protobuf reflection and detect upload_settings presence in the event,
+  // but protobuf_lite library included in Chrome does not expose reflection.
+  // `done_cb` called with OK causes the event to upload and then uploader picks
+  // up the next event. Any other status stops the upload before the event.
+  switch (record_copy.destination()) {
+    case LOG_UPLOAD: {
+      // Parse `record_copy.data()` string into the event.
+      ::ash::reporting::LogUploadEvent log_upload_event;
+      if (!log_upload_event.ParseFromArray(record_copy.data().data(),
+                                           record_copy.data().size())) {
+        LOG(WARNING) << "Event " << Destination_Name(record_copy.destination())
+                     << " is not parseable";
+        // The event is corrupt, ignore upload settings, upload with the event.
+        std::move(done_cb).Run(Status::StatusOK());
+        return;
+      }
+      if (log_upload_event.has_upload_tracker() &&
+          (!log_upload_event.upload_tracker().access_parameters().empty() ||
+           log_upload_event.upload_tracker().has_status())) {
+        // The event already reports job as completed (succeeded or failed),
+        // upload it with no further processing.
+        std::move(done_cb).Run(Status::StatusOK());
+        return;
+      }
+      // Check whether this upload is already being processed, based on the
+      // whole `upload_settings` (including retry count).
+      FileUploadJob::Manager::GetInstance()->Register(
+          priority, std::move(record_copy), std::move(log_upload_event),
+          delegate_factory.Run(),
+          base::BindOnce(
+              [](ScopedReservation scoped_reservation,
+                 base::OnceCallback<void(Status)> done_cb,
+                 StatusOr<FileUploadJob*> job_or_error) {
+                if (!job_or_error.has_value()) {
+                  LOG(WARNING) << "Failed to locate/create upload job, status="
+                               << job_or_error.error();
+                  // Upload the event as is.
+                  std::move(done_cb).Run(Status::StatusOK());
+                  return;
+                }
+                // Job has been located or created.
+                job_or_error.value()->event_helper()->Run(scoped_reservation,
+                                                          std::move(done_cb));
+              },
+              ScopedReservation(0uL, scoped_reservation), std::move(done_cb)));
+      break;
+    }
+    default:
+      LOG(WARNING) << "Event " << Destination_Name(record_copy.destination())
+                   << " is not expected to have log upload settings";
+      // Ignore upload settings, proceed with the event.
+      std::move(done_cb).Run(Status::StatusOK());
+  }
+}
+
+// Returns a tuple of <SequencingId, GenerationId> if `sequencing_id` and
+// `generation_id` can be parse as numbers. Returns error status otherwise.
+StatusOr<std::tuple<int64_t, int64_t>> ParseSequencingIdAndGenerationId(
+    const std::string* sequencing_id,
+    const std::string* generation_id) {
+  int64_t seq_id;
+  int64_t gen_id;
+
+  if (!base::StringToInt64(*sequencing_id, &seq_id) ||
+      !base::StringToInt64(*generation_id, &gen_id) || gen_id == 0) {
+    // For backwards compatibility accept unsigned values if signed are not
+    // parsed.
+    // TODO(b/177677467): Remove this duplication once server is fully
+    // transitioned.
+    uint64_t unsigned_seq_id;
+    uint64_t unsigned_gen_id;
+    if (!base::StringToUint64(*sequencing_id, &unsigned_seq_id) ||
+        !base::StringToUint64(*generation_id, &unsigned_gen_id) ||
+        unsigned_gen_id == 0) {
+      return base::unexpected(
+          Status(error::INVALID_ARGUMENT,
+                 "Could not parse sequencing id and generation id."));
+    }
+    seq_id = static_cast<int64_t>(unsigned_seq_id);
+    gen_id = static_cast<int64_t>(unsigned_gen_id);
+  }
+  return std::make_tuple(seq_id, gen_id);
+}
+
+// Destination comes back as a string from the server, transform it into a
+// proto.
+StatusOr<Destination> GetDestinationProto(
+    const std::string& destination_string) {
+  if (destination_string == "") {
+    return base::unexpected(Status(
+        error::NOT_FOUND, "Field destination is missing from ConfigFile"));
+  }
+
+  Destination destination;
+  if (!Destination_Parse(destination_string, &destination)) {
+    return base::unexpected(
+        Status(error::INVALID_ARGUMENT,
+               "Unable to parse destination from ConfigFile"));
+  }
+
+  // Reject undefined destination.
+  if (destination == UNDEFINED_DESTINATION) {
+    return base::unexpected(
+        Status(error::INVALID_ARGUMENT, "Received UNDEFINED_DESTINATION"));
+  }
+
+  return destination;
+}
+
+StatusOr<ConfigFile> GetConfigurationProtoFromDict(
+    const base::Value::Dict& file) {
+  ConfigFile config_file;
+
+  // Handle the version.
+  const auto config_file_version =
+      file.FindInt(json_keys::kConfigurationFileVersion);
+  if (!config_file_version.has_value()) {
+    return base::unexpected(
+        Status(error::INVALID_ARGUMENT,
+               "Field version is missing from configurationFile"));
+  }
+  config_file.set_version(config_file_version.value());
+
+  // Handle the signature.
+  const std::string* config_file_signature_str =
+      file.FindString(json_keys::kConfigurationFileSignature);
+  if (!config_file_signature_str || config_file_signature_str->empty()) {
+    return base::unexpected(
+        Status(error::INVALID_ARGUMENT,
+               "Field configFileSignature is missing from configurationFile"));
+  }
+  std::string config_file_signature;
+  if (!base::Base64Decode(*config_file_signature_str, &config_file_signature)) {
+    return base::unexpected(Status(error::INVALID_ARGUMENT,
+                                   "Unable to decode configFileSignature"));
+  }
+  config_file.set_config_file_signature(config_file_signature);
+
+  auto* const event_config_result =
+      file.FindList(json_keys::kBlockedEventConfigs);
+  if (!event_config_result) {
+    return base::unexpected(
+        Status(error::INVALID_ARGUMENT,
+               "Field blockedEventConfigs is missing from configurationFile"));
+  }
+
+  // Parse the list of event configs.
+  for (auto& entry : *event_config_result) {
+    auto* const current_config = config_file.add_blocked_event_configs();
+    auto* const dict = entry.GetIfDict();
+    if (dict->empty()) {
+      return base::unexpected(Status(
+          error::INVALID_ARGUMENT, "Empty event config in configurationFile"));
+    }
+
+    // Find destination and turn it into a proto.
+    auto* const destination =
+        dict->FindString(json_keys::kConfigurationFileDestination);
+    ASSIGN_OR_RETURN(const auto proto_destination,
+                     GetDestinationProto(*destination));
+    current_config->set_destination(proto_destination);
+
+    // Check if there are minimum and/or maximum release versions
+    // specified, if there are then we parse them and add them to the proto.
+    // This fields are optional so if they are not present it is okay.
+    const auto min_version =
+        dict->FindInt(json_keys::kConfigurationFileMinimumReleaseVerision);
+    if (min_version.has_value()) {
+      current_config->set_minimum_release_version(min_version.value());
+    }
+    const auto max_version =
+        dict->FindInt(json_keys::kConfigurationFileMaximumReleaseVerision);
+    if (max_version.has_value()) {
+      current_config->set_maximum_release_version(max_version.value());
+    }
+  }
+
+  return config_file;
+}
+}  // namespace
+
+// static
+StatusOr<SequenceInformation>
+RecordHandlerImpl::SequenceInformationValueToProto(
+    const base::Value::Dict& value) {
+  const std::string* sequencing_id =
+      value.FindString(reporting::json_keys::kSequencingId);
+  const std::string* generation_id =
+      value.FindString(reporting::json_keys::kGenerationId);
+  const std::string* generation_guid =
+      value.FindString(json_keys::kGenerationGuid);
+  const auto priority_result =
+      GetPriorityProtoFromSequenceInformationValue(value);
+  // If required sequence info fields don't exist, or are malformed,
+  // return error.
+  // Note: `generation_guid` is allowed to be empty - managed devices
+  // may not have it.
+  if (IsMissingSequenceInformation(sequencing_id, generation_id,
+                                   priority_result, generation_guid)) {
+    return base::unexpected(
+        Status(error::INVALID_ARGUMENT,
+               base::StrCat({"Provided value lacks some fields required by "
+                             "SequenceInformation proto: ",
+                             value.DebugString()})));
+  }
+
+  const auto parse_seq_id_gen_id_result =
+      ParseSequencingIdAndGenerationId(sequencing_id, generation_id);
+  if (!parse_seq_id_gen_id_result.has_value()) {
+    return base::unexpected(
+        Status(error::INVALID_ARGUMENT,
+               base::StrCat({"Provided value did not conform to a valid "
+                             "SequenceInformation proto. Invalid sequencing "
+                             "id or generation id : ",
+                             value.DebugString()})));
+  }
+  const auto [seq_id, gen_id] = parse_seq_id_gen_id_result.value();
+
+  SequenceInformation proto;
+  proto.set_sequencing_id(seq_id);
+  proto.set_generation_id(gen_id);
+  proto.set_priority(Priority(priority_result.value()));
+
+#if BUILDFLAG(IS_CHROMEOS)
+  // If `generation_guid` does not exist, set it to be an empty string.
+  const std::string gen_guid = generation_guid ? *generation_guid : "";
+  if (!GenerationGuidIsValid(gen_guid)) {
+    return base::unexpected(Status(
+        error::INVALID_ARGUMENT,
+        base::StrCat({"Provided value did not conform to a valid "
+                      "SequenceInformation proto. Invalid generation guid : ",
+                      value.DebugString()})));
+  }
+  proto.set_generation_guid(gen_guid);
+#endif  // BUILDFLAG(IS_CHROMEOS)
+  return proto;
+}
+
+// ReportUploader handles enqueuing events on the `report_queue_`.
+class RecordHandlerImpl::ReportUploader
+    : public TaskRunnerContext<CompletionResponse> {
+ public:
+  ReportUploader(
+      bool need_encryption_key,
+      int config_file_version,
+      std::vector<EncryptedRecord> records,
+      ScopedReservation scoped_reservation,
+      base::RepeatingCallback<std::unique_ptr<FileUploadJob::Delegate>()>
+          delegate_factory,
+      CompletionCallback upload_complete_cb,
+      EncryptionKeyAttachedCallback encryption_key_attached_cb,
+      scoped_refptr<base::SequencedTaskRunner> sequenced_task_runner);
+
+ private:
+  ~ReportUploader() override;
+
+  void OnStart() override;
+  void OnCompletion(const CompletionResponse& result) override;
+
+  void StartUpload();
+  void LogNumRecordsInUpload(size_t num_records);
+  void ResumeUpload(size_t next_record);
+  void BuildAndUploadRequest(size_t next_record);
+  void OnUploadComplete(StatusOr<base::Value::Dict> response);
+  void HandleFailedUpload(Status status);
+  void HandleSuccessfulUpload(base::Value::Dict last_response);
+  void Complete(CompletionResponse result);
+
+  // Returns a gap record if it is necessary. Expects the contents of the
+  // failedUploadedRecord field in the response:
+  // {
+  //   "sequencingId": 1234
+  //   "generationId": 4321
+  //   "priority": 3
+  //   "generationGuid": "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx"
+  // }
+  std::optional<EncryptedRecord> HandleFailedUploadedSequenceInformation(
+      const base::Value::Dict& sequence_information);
+
+  bool need_encryption_key_ GUARDED_BY_CONTEXT(sequence_checker_);
+  int config_file_version_ GUARDED_BY_CONTEXT(sequence_checker_);
+  std::vector<EncryptedRecord> records_ GUARDED_BY_CONTEXT(sequence_checker_);
+  ScopedReservation scoped_reservation_ GUARDED_BY_CONTEXT(sequence_checker_);
+
+  // File upload delegate factory.
+  const base::RepeatingCallback<std::unique_ptr<FileUploadJob::Delegate>()>
+      delegate_factory_;
+
+  // Encryption key delivery callback.
+  EncryptionKeyAttachedCallback encryption_key_attached_cb_
+      GUARDED_BY_CONTEXT(sequence_checker_);
+
+  // Set for the highest record being uploaded.
+  std::optional<SequenceInformation> highest_sequence_information_
+      GUARDED_BY_CONTEXT(sequence_checker_);
+
+  // Set to |true| if force_confirm flag is present. |false| by default.
+  bool force_confirm_ GUARDED_BY_CONTEXT(sequence_checker_) = false;
+
+  SEQUENCE_CHECKER(sequence_checker_);
+};
+
+RecordHandlerImpl::ReportUploader::ReportUploader(
+    bool need_encryption_key,
+    int config_file_version,
+    std::vector<EncryptedRecord> records,
+    ScopedReservation scoped_reservation,
+    base::RepeatingCallback<std::unique_ptr<FileUploadJob::Delegate>()>
+        delegate_factory,
+    CompletionCallback completion_cb,
+    EncryptionKeyAttachedCallback encryption_key_attached_cb,
+    scoped_refptr<base::SequencedTaskRunner> sequenced_task_runner)
+    : TaskRunnerContext<CompletionResponse>(std::move(completion_cb),
+                                            sequenced_task_runner),
+      need_encryption_key_(need_encryption_key),
+      config_file_version_(config_file_version),
+      records_(std::move(records)),
+      scoped_reservation_(std::move(scoped_reservation)),
+      delegate_factory_(delegate_factory),
+      encryption_key_attached_cb_(std::move(encryption_key_attached_cb)) {
+  DETACH_FROM_SEQUENCE(sequence_checker_);
+}
+
+RecordHandlerImpl::ReportUploader::~ReportUploader() = default;
+
+void RecordHandlerImpl::ReportUploader::OnStart() {
+  DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
+  if (records_.empty() && !need_encryption_key_) {
+    Status empty_records =
+        Status(error::INVALID_ARGUMENT, "records_ was empty");
+    LOG(ERROR) << empty_records;
+    Complete(base::unexpected(std::move(empty_records)));
+    return;
+  }
+
+  StartUpload();
+}
+
+void RecordHandlerImpl::ReportUploader::OnCompletion(
+    const CompletionResponse& result) {
+  DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
+  // In case `OnUploadComplete` was skipped for whatever reason,
+  // release the reservation (do not wait for destructor to do that).
+  ScopedReservation release(std::move(scoped_reservation_));
+}
+
+void RecordHandlerImpl::ReportUploader::StartUpload() {
+  DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
+  CHECK(!records_.empty() || need_encryption_key_);
+
+  // Log size of non-empty uploads. Key-request uploads have no records.
+  if (!records_.empty()) {
+    Schedule(&RecordHandlerImpl::ReportUploader::LogNumRecordsInUpload,
+             base::Unretained(this), records_.size());
+  }
+
+  ResumeUpload(/*next_record=*/0);
+}
+
+void RecordHandlerImpl::ReportUploader::LogNumRecordsInUpload(
+    size_t num_records) {
+  DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
+#if BUILDFLAG(IS_CHROMEOS)
+  DCHECK_CURRENTLY_ON(content::BrowserThread::UI);
+  if (policy::ManagementServiceFactory::GetForPlatform()
+          ->HasManagementAuthority(
+              policy::EnterpriseManagementAuthority::CLOUD_DOMAIN)) {
+    // This is a managed device, so log the upload as such.
+    base::UmaHistogramCounts1000(
+        "Browser.ERP.RecordsPerUploadFromManagedDevice", num_records);
+  } else {
+    base::UmaHistogramCounts1000(
+        "Browser.ERP.RecordsPerUploadFromUnmanagedDevice", num_records);
+  }
+#else
+  base::UmaHistogramCounts1000(
+      "Browser.ERP.RecordsPerUploadFromNonChromeosDevice", num_records);
+#endif  // BUILDFLAG(IS_CHROMEOS)
+}
+
+void RecordHandlerImpl::ReportUploader::ResumeUpload(size_t next_record) {
+  DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
+  while (next_record < records_.size()) {
+    auto& record = records_.at(next_record++);
+    if (!record.has_record_copy()) {
+      // Regular event, add it for upload and proceed.
+      continue;
+    }
+    // Asynchronously process event, add it for upload and proceed if
+    // successful.
+    const auto priority = record.sequence_information().priority();
+    auto record_copy = std::move(*record.mutable_record_copy());
+    record.clear_record_copy();
+    auto resume_cb = base::BindPostTaskToCurrentDefault(base::BindOnce(
+        [](RecordHandlerImpl::ReportUploader* self, size_t next_record,
+           Status processed_status) {
+          if (!processed_status.ok()) {
+            // Event not processed, stop before it.
+            // Do not add the current event and any later ones.
+            self->BuildAndUploadRequest(next_record);
+            return;
+          }
+          // Event processed (next upload tracking event posted, if needed),
+          // add current event to upload (`record_copy` has been removed
+          // from it) and proceed.
+          self->ResumeUpload(next_record);  // Already advanced!
+        },
+        base::Unretained(this),  // `ReportUploader` destructs on completion.
+        next_record));
+    ProcessFileUpload(priority, std::move(record_copy),
+                      ScopedReservation(0uL, scoped_reservation_),
+                      delegate_factory_, std::move(resume_cb));
+    return;  // We will resume on `resume_cb`
+  }
+
+  BuildAndUploadRequest(next_record);
+}
+
+void RecordHandlerImpl::ReportUploader::BuildAndUploadRequest(
+    size_t next_record) {
+  DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
+  auto request_builder =
+      std::make_unique<UploadEncryptedReportingRequestBuilder>(
+          need_encryption_key_, config_file_version_);
+
+  CHECK_LE(next_record, records_.size());
+  for (size_t i = 0; i < next_record; ++i) {
+    auto& record = records_.at(i);
+    request_builder->AddRecord(std::move(record), scoped_reservation_);
+  }
+  // Release the rest of the `records_`.
+  records_.clear();
+
+  // Assign random UUID as the request id for server side log correlation
+  const auto request_id = base::Token::CreateRandom().ToString();
+  request_builder->SetRequestId(request_id);
+
+  // Perform Build on a thread pool, and upload result on UI.
+  base::ThreadPool::PostTaskAndReplyWithResult(
+      FROM_HERE, {},
+      base::BindOnce(&UploadEncryptedReportingRequestBuilder::Build,
+                     std::move(request_builder)),
+      base::BindOnce(
+          [](RecordHandlerImpl::ReportUploader* self,
+             ScopedReservation scoped_reservation,
+             std::optional<base::Value::Dict> request_result) {
+            if (!request_result.has_value()) {
+              self->HandleFailedUpload(Status(error::FAILED_PRECONDITION,
+                                              "Failure to build request"));
+              return;
+            }
+            auto response_cb =
+                base::BindPostTaskToCurrentDefault(base::BindOnce(
+                    &RecordHandlerImpl::ReportUploader::OnUploadComplete,
+                    base::Unretained(self)));
+            content::GetUIThreadTaskRunner({})->PostTask(
+                FROM_HERE,
+                base::BindOnce(
+                    [](base::Value::Dict request,
+                       ScopedReservation scoped_reservation,
+                       ReportingServerConnector::ResponseCallback response_cb) {
+                      ReportingServerConnector::UploadEncryptedReport(
+                          std::move(request), std::move(response_cb));
+                    },
+                    std::move(request_result.value()),
+                    std::move(scoped_reservation), std::move(response_cb)));
+          },
+          base::Unretained(this), std::move(scoped_reservation_)));
+}
+
+void RecordHandlerImpl::ReportUploader::OnUploadComplete(
+    StatusOr<base::Value::Dict> response) {
+  DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
+  // Release reservation right away, since we no londer need to keep
+  // `base::Value::Dict request` it was referring to.
+  scoped_reservation_.Reduce(0uL);
+
+  if (!response.has_value()) {
+    HandleFailedUpload(response.error());
+    return;
+  }
+
+  HandleSuccessfulUpload(std::move(response.value()));
+}
+
+void RecordHandlerImpl::ReportUploader::HandleFailedUpload(Status status) {
+  DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
+  if (highest_sequence_information_.has_value()) {
+    Complete(SuccessfulUploadResponse{
+        .sequence_information =
+            std::move(highest_sequence_information_.value()),
+        .force_confirm = force_confirm_});
+    return;
+  }
+
+  Complete(base::unexpected(std::move(status)));
+}
+
+void RecordHandlerImpl::ReportUploader::HandleSuccessfulUpload(
+    base::Value::Dict last_response) {
+  DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
+  // {{{Note}}} ERP Response Payload Overview
+  //
+  //  {
+  //    "lastSucceedUploadedRecord": ... // SequenceInformation proto
+  //    "firstFailedUploadedRecord": {
+  //      "failedUploadedRecord": ... // SequenceInformation proto
+  //      "failureStatus": ... // Status proto
+  //    },
+  //    "encryptionSettings": ... // EncryptionSettings proto
+  //    "forceConfirm": true, // if present, flag that lastSucceedUploadedRecord
+  //                          // is to be accepted unconditionally by client
+  //    "configurationFile": ... // ConfigurationFile proto
+  //    // Internal control
+  //    "enableUploadSizeAdjustment": true,  // If present, upload size
+  //                                         // adjustment is enabled.
+  //  }
+  const base::Value::Dict* last_succeed_uploaded_record =
+      last_response.FindDict(json_keys::kLastSucceedUploadedRecord);
+  if (last_succeed_uploaded_record != nullptr) {
+    auto seq_info_result =
+        SequenceInformationValueToProto(*last_succeed_uploaded_record);
+    if (seq_info_result.has_value()) {
+      highest_sequence_information_ = std::move(seq_info_result.value());
+    } else {
+      LOG(ERROR) << "Server responded with an invalid SequenceInformation "
+                    "for lastSucceedUploadedRecord"
+                 << "\n"
+                 << "error status = " << seq_info_result.error() << "\n"
+                 << "last_succeed_uploaded_record = "
+                 << *last_succeed_uploaded_record;
+    }
+  }
+
+  // Handle forceConfirm flag, if present.
+  const auto force_confirm_flag =
+      last_response.FindBool(json_keys::kForceConfirm);
+  if (force_confirm_flag.has_value() && force_confirm_flag.value()) {
+    force_confirm_ = true;
+  }
+
+  // Handle enableUploadSizeAdjustment flag, if present.
+  const auto enable_upload_size_adjustment =
+      last_response.FindBool(json_keys::kEnableUploadSizeAdjustment);
+  if (enable_upload_size_adjustment.has_value()) {
+    EventUploadSizeController::Enabler::Set(
+        enable_upload_size_adjustment.value());
+  }
+
+  // Handle the encryption settings.
+  // Note: server can attach it to response regardless of whether
+  // the response indicates success or failure, and whether the client
+  // set attach_encryption_settings to true in request.
+  const base::Value::Dict* signed_encryption_key_record =
+      last_response.FindDict(json_keys::kEncryptionSettings);
+  if (signed_encryption_key_record != nullptr) {
+    const std::string* public_key_str =
+        signed_encryption_key_record->FindString(json_keys::kPublicKey);
+    const auto public_key_id_result =
+        signed_encryption_key_record->FindInt(json_keys::kPublicKeyId);
+    const std::string* public_key_signature_str =
+        signed_encryption_key_record->FindString(
+            json_keys::kPublicKeySignature);
+    std::string public_key;
+    std::string public_key_signature;
+    if (public_key_str != nullptr &&
+        base::Base64Decode(*public_key_str, &public_key) &&
+        public_key_signature_str != nullptr &&
+        base::Base64Decode(*public_key_signature_str, &public_key_signature) &&
+        public_key_id_result.has_value()) {
+      SignedEncryptionInfo signed_encryption_key;
+      signed_encryption_key.set_public_asymmetric_key(public_key);
+      signed_encryption_key.set_public_key_id(public_key_id_result.value());
+      signed_encryption_key.set_signature(public_key_signature);
+      std::move(encryption_key_attached_cb_).Run(signed_encryption_key);
+      need_encryption_key_ = false;
+    }
+  }
+
+  // Handle the configuration file.
+  // The server attaches the configuration file if it was requested
+  // by the client. Adding a check to make sure to only process it if the
+  // feature is enabled on the client side.
+  const base::Value::Dict* signed_configuration_file_record =
+      last_response.FindDict(json_keys::kConfigurationFile);
+  if (signed_configuration_file_record != nullptr &&
+      base::FeatureList::IsEnabled(kShouldRequestConfigurationFile)) {
+    auto seq_info_result =
+        GetConfigurationProtoFromDict(*signed_configuration_file_record);
+    if (seq_info_result.has_value()) {
+      // TODO(b/289117140): Call the callback when it is in place.
+    } else {
+      base::UmaHistogramEnumeration("Browser.ERP.ConfigFileParsingError",
+                                    seq_info_result.error().code(),
+                                    error::Code::MAX_VALUE);
+    }
+  }
+
+  // Check if a record was unprocessable on the server.
+  const base::Value::Dict* failed_uploaded_record =
+      last_response.FindDictByDottedPath(
+          base::StrCat({json_keys::kFirstFailedUploadedRecord, ".",
+                        json_keys::kFailedUploadedRecord}));
+  if (!force_confirm_ && failed_uploaded_record != nullptr) {
+    // The record we uploaded previously was unprocessable by the server,
+    // if the record was after the current |highest_sequence_information_|
+    // we should return a gap record. A gap record consists of an
+    // EncryptedRecord with just SequenceInformation. The server will
+    // report success for the gap record and
+    // |highest_sequence_information_| will be updated in the next
+    // response. In the future there may be recoverable |failureStatus|,
+    // but for now all the device can do is delete the record.
+    auto gap_record_result =
+        HandleFailedUploadedSequenceInformation(*failed_uploaded_record);
+    if (gap_record_result.has_value()) {
+      LOG(ERROR) << "Data Loss. Record was unprocessable by the server: "
+                 << *failed_uploaded_record;
+      records_.push_back(std::move(gap_record_result.value()));
+    }
+  }
+
+  if (!records_.empty()) {
+    // Upload the next record but do not request encryption key again.
+    StartUpload();
+    return;
+  }
+
+  // No more records to process. Return the highest_sequence_information_
+  // if available.
+  if (highest_sequence_information_.has_value()) {
+    Complete(SuccessfulUploadResponse{
+        .sequence_information =
+            std::move(highest_sequence_information_.value()),
+        .force_confirm = force_confirm_});
+    return;
+  }
+
+  Complete(base::unexpected(
+      Status(error::INTERNAL, "Unable to upload any records")));
+}
+
+std::optional<EncryptedRecord>
+RecordHandlerImpl::ReportUploader::HandleFailedUploadedSequenceInformation(
+    const base::Value::Dict& sequence_information) {
+  DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
+  if (!highest_sequence_information_.has_value()) {
+    LOG(ERROR) << "highest_sequence_information_ has no value.";
+    return std::nullopt;
+  }
+
+  auto seq_info_result = SequenceInformationValueToProto(sequence_information);
+  if (!seq_info_result.has_value()) {
+    LOG(ERROR) << "Server responded with an invalid SequenceInformation for "
+               << json_keys::kFirstFailedUploadedRecord << "."
+               << json_keys::kFailedUploadedRecord << ":"
+               << sequence_information;
+    return std::nullopt;
+  }
+
+  SequenceInformation& seq_info = seq_info_result.value();
+
+  // |seq_info| should be of the same generation, generation guid, and
+  // priority as highest_sequence_information_, and have the next
+  // sequencing_id.
+  if (seq_info.generation_id() !=
+          highest_sequence_information_->generation_id() ||
+      seq_info.generation_guid() !=
+          highest_sequence_information_->generation_guid() ||
+      seq_info.priority() != highest_sequence_information_->priority() ||
+      seq_info.sequencing_id() !=
+          highest_sequence_information_->sequencing_id() + 1) {
+    LOG(ERROR) << "Sequence info fields are incorrect.";
+    return std::nullopt;
+  }
+
+  // Build a gap record and return it.
+  EncryptedRecord encrypted_record;
+  *encrypted_record.mutable_sequence_information() = std::move(seq_info);
+  return encrypted_record;
+}
+
+void RecordHandlerImpl::ReportUploader::Complete(
+    CompletionResponse completion_result) {
+  Schedule(&RecordHandlerImpl::ReportUploader::Response, base::Unretained(this),
+           completion_result);
+}
+
+RecordHandlerImpl::RecordHandlerImpl(
+    scoped_refptr<base::SequencedTaskRunner> sequenced_task_runner,
+    base::RepeatingCallback<std::unique_ptr<FileUploadJob::Delegate>()>
+        delegate_factory)
+    : sequenced_task_runner_(sequenced_task_runner),
+      delegate_factory_(delegate_factory) {}
+
+RecordHandlerImpl::~RecordHandlerImpl() = default;
+
+void RecordHandlerImpl::HandleRecords(
+    bool need_encryption_key,
+    int config_file_version,
+    std::vector<EncryptedRecord> records,
+    ScopedReservation scoped_reservation,
+    CompletionCallback upload_complete_cb,
+    EncryptionKeyAttachedCallback encryption_key_attached_cb) {
+  Start<RecordHandlerImpl::ReportUploader>(
+      need_encryption_key, config_file_version, std::move(records),
+      std::move(scoped_reservation), delegate_factory_,
+      std::move(upload_complete_cb), std::move(encryption_key_attached_cb),
+      sequenced_task_runner_);
+}
+}  // namespace reporting

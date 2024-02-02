@@ -1,0 +1,10 @@
+COMPANY_FULLNAME=The Om Browser Authors
+COMPANY_SHORTNAME=The Om Browser Authors
+PRODUCT_FULLNAME=Om Browser
+PRODUCT_SHORTNAME=Om Browser
+PRODUCT_INSTALLER_FULLNAME=Om Browser Installer
+PRODUCT_INSTALLER_SHORTNAME=Om Browser Installer
+COPYRIGHT=Copyright @LASTCHANGE_YEAR@ The Om Browser Authors. All rights reserved.
+MAC_BUNDLE_ID=org.chromium.Om Browser
+MAC_CREATOR_CODE=Cr24
+MAC_TEAM_ID=

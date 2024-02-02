@@ -1,0 +1,91 @@
+// Copyright 2020 The Chromium Authors
+// Use of this source code is governed by a BSD-style license that can be
+// found in the LICENSE file.
+
+#include "chromeos/components/quick_answers/quick_answers_model.h"
+
+namespace quick_answers {
+
+PhoneticsInfo::PhoneticsInfo() = default;
+PhoneticsInfo::PhoneticsInfo(const PhoneticsInfo&) = default;
+PhoneticsInfo::~PhoneticsInfo() = default;
+
+QuickAnswer::QuickAnswer() = default;
+QuickAnswer::~QuickAnswer() = default;
+
+IntentInfo::IntentInfo() = default;
+IntentInfo::IntentInfo(const IntentInfo& other) = default;
+IntentInfo::IntentInfo(const std::string& intent_text,
+                       IntentType intent_type,
+                       const std::string& device_language,
+                       const std::string& source_language) {
+  this->intent_text = intent_text;
+  this->intent_type = intent_type;
+  this->device_language = device_language;
+  this->source_language = source_language;
+}
+IntentInfo::~IntentInfo() = default;
+
+PreprocessedOutput::PreprocessedOutput() = default;
+PreprocessedOutput::PreprocessedOutput(const PreprocessedOutput& other) =
+    default;
+PreprocessedOutput::~PreprocessedOutput() = default;
+
+QuickAnswersRequest::QuickAnswersRequest() = default;
+QuickAnswersRequest::QuickAnswersRequest(const QuickAnswersRequest& other) =
+    default;
+QuickAnswersRequest::~QuickAnswersRequest() = default;
+
+Sense::Sense() = default;
+Sense::Sense(const Sense& other) = default;
+Sense& Sense::Sense::operator=(const Sense& other) = default;
+Sense::~Sense() = default;
+
+DefinitionResult::DefinitionResult() = default;
+DefinitionResult::DefinitionResult(const DefinitionResult& other) = default;
+DefinitionResult& DefinitionResult::DefinitionResult::operator=(
+    const DefinitionResult& other) = default;
+DefinitionResult::~DefinitionResult() = default;
+
+TranslationResult::TranslationResult() = default;
+TranslationResult::TranslationResult(const TranslationResult& other) = default;
+TranslationResult& TranslationResult::TranslationResult::operator=(
+    const TranslationResult& other) = default;
+TranslationResult::~TranslationResult() = default;
+
+StandardUnitConversionRates::StandardUnitConversionRates(double source_rate,
+                                                         double dest_rate)
+    : source_to_standard_conversion_rate(source_rate),
+      dest_to_standard_conversion_rate(dest_rate) {}
+StandardUnitConversionRates::StandardUnitConversionRates(
+    const StandardUnitConversionRates& other) = default;
+StandardUnitConversionRates&
+StandardUnitConversionRates::StandardUnitConversionRates::operator=(
+    const StandardUnitConversionRates& other) = default;
+StandardUnitConversionRates::~StandardUnitConversionRates() = default;
+
+UnitConversionInfo::UnitConversionInfo(
+    std::string unit,
+    StandardUnitConversionRates standard_unit_conversion_rates)
+    : unit(unit),
+      standard_unit_conversion_rates(standard_unit_conversion_rates) {}
+UnitConversionInfo::UnitConversionInfo(const UnitConversionInfo& other) =
+    default;
+UnitConversionInfo& UnitConversionInfo::UnitConversionInfo::operator=(
+    const UnitConversionInfo& other) = default;
+UnitConversionInfo::~UnitConversionInfo() = default;
+
+UnitConversionResult::UnitConversionResult() = default;
+UnitConversionResult::UnitConversionResult(const UnitConversionResult& other) =
+    default;
+UnitConversionResult& UnitConversionResult::UnitConversionResult::operator=(
+    const UnitConversionResult& other) = default;
+UnitConversionResult::~UnitConversionResult() = default;
+
+StructuredResult::StructuredResult() = default;
+StructuredResult::~StructuredResult() = default;
+
+QuickAnswersSession::QuickAnswersSession() = default;
+QuickAnswersSession::~QuickAnswersSession() = default;
+
+}  // namespace quick_answers
