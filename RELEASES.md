@@ -3,8 +3,8 @@
 > [!NOTE]
 > *Read this before proceeding further.*
 - ***Firstly download the mini_installer by clicking on Windows link given below.***
-- ***Secondly after downloading the browser Open the Browser and then give access to all the Inbuilt Extensions . As it is very important step to get Protected from fraud and detection of  dark pattern.***
 + ***Then open the mini_installer.exe file then it will ask for your confiemation and then click Yes Om Browser will be downloaded successfully.***
++ ***Open the Browser and then give access to all the Inbuilt Extensions . As it is very important step to get Protected from fraud and detection of  dark pattern.***
 
 > [!CAUTION]
 > If this message shows in after click on the Windows link  than (***Sorry about that, but we can’t show files that are this big right now.***) then click on ***view raw*** option and file will be automatically downloaded.
