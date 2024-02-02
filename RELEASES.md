@@ -1,10 +1,11 @@
 ### INSTRUCIONS FOR DOWNLOADING  OM BROWSER
 
 > [!NOTE]
-> Read this before proceeding further.
+> *Read this before proceeding further.*
 - ***Firstly download the mini_installer.***
 + ***Then open the mini_installer.exe file then it will ask for your confiemation and then click Yes Om Browser will be downloaded successfully.***
-* ***Open the Browser and then give access to all the Inbuilt Extensions . As it is very important step to get Protected from fraud and dark pattern.***
+[!CAUTION]
+> ***Open the Browser and then give access to all the Inbuilt Extensions . As it is very important step to get Protected from fraud and dark pattern.***
   
 [Windows](mini_installer.exe)
 
