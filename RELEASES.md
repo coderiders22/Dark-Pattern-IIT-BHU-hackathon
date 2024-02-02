@@ -10,5 +10,5 @@
   
 [Windows](mini_installer.exe)
 
-[!MAC]
+[MAC]
 > ***COMING SOON***
