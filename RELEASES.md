@@ -1,4 +1,4 @@
-### INSTRUCIONS FOR DOWNLOADING  OM BROWSER
+### INSTRUCTIONS FOR DOWNLOADING  OM BROWSER
 
 > [!NOTE]
 > *Read this before proceeding further.*
