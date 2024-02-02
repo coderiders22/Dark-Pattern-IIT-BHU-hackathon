@@ -8,7 +8,7 @@
 > [!CAUTION]
 > ***Open the Browser and then give access to all the Inbuilt Extensions . As it is very important step to get Protected from fraud and dark pattern.***
 
-> CLICK HERE
+> CLICK HERE 
 > [Windows](mini_installer.exe)
 
 [MAC]
