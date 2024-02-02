@@ -52,7 +52,7 @@
 *Made using JavaScript, this encryption is compatible with all browsers. The folder has to be uploaded and tapped into to enable it.* 
 
 > [!CAUTION]
-> Read this file before downlading the Om Browser
+> ***Read this file before downlading the Om Browser***
 > [Click here](RELEASES.md)
 
 
