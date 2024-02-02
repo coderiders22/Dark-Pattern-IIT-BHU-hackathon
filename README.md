@@ -53,7 +53,7 @@
 
 > [!NOTE]
 > Read this file before downlading the Om Browser
-> [](RELEASES.md)
+> [Click here](RELEASES.md)
 
  ![VIII. Flowchart of working](Screenshot.png)
 
