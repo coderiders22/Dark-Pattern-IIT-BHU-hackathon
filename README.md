@@ -1,4 +1,4 @@
-> You may check the documentation to know more about the problem, approaches, and see ui screenshots.
+> You may check the documentation to know more about the problem, approaches, and see flowcharts.
 
  ### Introduction: TrustForge 
 
