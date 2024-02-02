@@ -55,7 +55,7 @@
 > Read this file before downlading the Om Browser
 > [Click here](RELEASES.md)
 
- ![VIII. Flowchart of working](Screenshot.png)
+ ![VIII.Flowchart of working](flowchart.jpeg)
 
 > ***In conclusion, we have been able to implement a solution that is user friendly, scalable, adaptable, flexible, as well as accurate and secure.***
 
