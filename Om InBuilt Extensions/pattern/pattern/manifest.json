@@ -1,0 +1,51 @@
+{
+    "manifest_version": 3,
+    "name": "__MSG_extName__",
+    "description": "__MSG_extDescription__",
+    "version": "1.2.1",
+    "icons": {
+        "16": "images/om3.png",
+        "32": "images/om3.png",
+        "48": "images/om3.png",
+        "128": "images/om3.png",
+        "512": "images/om3.png"
+    },
+    "content_scripts": [
+        {
+            "js": [
+                "scripts/content.js"
+            ],
+            "css": [
+                "stylesheets/style.css"
+            ],
+            "matches": [
+                "http://*/*",
+                "https://*/*"
+            ],
+            "run_at": "document_idle"
+        }
+    ],
+    "permissions": [
+        "activeTab",
+        "tabs",
+        "storage"
+    ],
+    "action": {
+        "default_popup": "popup/popup.html"
+    },
+    "web_accessible_resources": [
+        {
+            "resources": [
+                "scripts/constants.js"
+            ],
+            "matches": [
+                "http://*/*",
+                "https://*/*"
+            ]
+        }
+    ],
+    "default_locale": "de",
+    "background": {
+        "service_worker": "background.js"
+    }
+}
