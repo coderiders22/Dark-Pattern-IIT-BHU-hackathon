@@ -58,4 +58,4 @@
 
 
 ### TO VIEW & DOWNLOAD THE OM BROWSER
-> [Click Here](Om.exe)
+> [Click Here](RELEASES.md)
